@@ -16,6 +16,9 @@ var (
 
 	// Host is the API hostname.
 	Host string
+
+	// Framework is the target module framework, es6 or amd.
+	Framework string
 )
 
 // Command is the goa application code generator command line data structure.
@@ -38,6 +41,8 @@ func (c *Command) RegisterFlags(r codegen.FlagRegistry) {
 		EnumVar(&Scheme, "http", "https")
 	r.Flag("host", `the API hostname, defaults to the hostname defined in the API design if any`).
 		StringVar(&Host)
+	r.Flag("framework", "The JavaScript module framework, es6 or amd").
+		EnumVar(&Framework, "es6", "amd")
 }
 
 // Run simply calls the meta generator.
