@@ -219,8 +219,22 @@ func (g *Generator) generateResourceClient(res *design.ResourceDefinition, funcs
 		if action.WebSocket() {
 			return clientsWSTmpl.Execute(file, action)
 		}
+		funcNames := make(map[string]int)
 		for _, r := range action.Routes {
-			if err := pathTmpl.Execute(file, r); err != nil {
+			funcName := fmt.Sprintf("%s%s", r.Parent.Name, strings.Title(r.Parent.Parent.Name))
+			number := 0
+			if _, ok := funcNames[funcName]; ok {
+				funcNames[funcName]++
+				number = funcNames[funcName]
+			}
+			s := struct {
+				Number int
+				Route  *design.RouteDefinition
+			}{
+				Number: number,
+				Route:  r,
+			}
+			if err := pathTmpl.Execute(file, s); err != nil {
 				return err
 			}
 		}
@@ -271,6 +285,7 @@ func (g *Generator) Generate(api *design.APIDefinition) (_ []string, err error) 
 		"toString":        toString,
 		"typeName":        typeName,
 		"signerType":      signerType,
+		"withNumber":      withNumber,
 	}
 	clientPkg, err := codegen.PackagePath(codegen.OutputDir)
 	if err != nil {
@@ -519,6 +534,13 @@ func typeName(mt *design.MediaTypeDefinition) string {
 	return name
 }
 
+func withNumber(s string, i int) string {
+	if i > 0 {
+		return fmt.Sprintf("%s%d", s, i)
+	}
+	return s
+}
+
 const arrayToStringT = `	{{ $tmp := tempvar }}{{ $tmp }} := make([]string, len({{ .Name }}))
 	for i, e := range {{ .Name }} {
 		{{ $tmp2 := tempvar }}{{ toString "e" $tmp2 .ElemType }}
@@ -542,10 +564,10 @@ func {{ $funcName }}(r io.Reader, decoderFn goa.DecoderFunc) ({{ gotyperef . .Al
 }
 `
 
-const pathTmpl = `{{ $funcName := printf "%sPath" (goify (printf "%s%s" .Parent.Name (title .Parent.Parent.Name)) true) }}{{/*
-*/}}// {{ $funcName }} computes a request path to the {{ .Parent.Name }} action of {{ .Parent.Parent.Name }}.
-func {{ $funcName }}({{ pathParams . }}) string {
-	return fmt.Sprintf("{{ pathTemplate . }}", {{ pathParamNames . }})
+const pathTmpl = `{{ $funcName := withNumber (printf "%sPath" (goify (printf "%s%s" .Route.Parent.Name (title .Route.Parent.Parent.Name)) true)) .Number }}{{/*
+*/}}// {{ $funcName }} computes a request path to the {{ .Route.Parent.Name }} action of {{ .Route.Parent.Parent.Name }}.
+func {{ $funcName }}({{ pathParams .Route }}) string {
+	return fmt.Sprintf("{{ pathTemplate .Route }}", {{ pathParamNames .Route }})
 }
 `
 
