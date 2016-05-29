@@ -234,8 +234,10 @@ type (
 		Params *AttributeDefinition
 		// Query string parameters only
 		QueryParams *AttributeDefinition
-		// Payload blueprint (request body) if any
+		// Payload blueprint (request body)
 		Payload *UserTypeDefinition
+		// Payload blueprint (request body) if any
+		OptionalPayload *UserTypeDefinition
 		// Request headers that need to be made available to action
 		Headers *AttributeDefinition
 		// Metadata is a list of key/value pairs

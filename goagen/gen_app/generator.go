@@ -137,17 +137,18 @@ func (g *Generator) generateContexts(api *design.APIDefinition) error {
 				}
 			}
 			ctxData := ContextTemplateData{
-				Name:         ctxName,
-				ResourceName: r.Name,
-				ActionName:   a.Name,
-				Payload:      a.Payload,
-				Params:       params,
-				Headers:      headers,
-				Routes:       a.Routes,
-				Responses:    non101,
-				API:          api,
-				DefaultPkg:   g.target,
-				Security:     a.Security,
+				Name:            ctxName,
+				ResourceName:    r.Name,
+				ActionName:      a.Name,
+				Payload:         a.Payload,
+				OptionalPayload: a.OptionalPayload,
+				Params:          params,
+				Headers:         headers,
+				Routes:          a.Routes,
+				Responses:       non101,
+				API:             api,
+				DefaultPkg:      g.target,
+				Security:        a.Security,
 			}
 			return ctxWr.Execute(&ctxData)
 		})
@@ -214,12 +215,13 @@ func (g *Generator) generateControllers(api *design.APIDefinition) error {
 			context := fmt.Sprintf("%s%sContext", codegen.Goify(a.Name, true), codegen.Goify(r.Name, true))
 			unmarshal := fmt.Sprintf("unmarshal%s%sPayload", codegen.Goify(a.Name, true), codegen.Goify(r.Name, true))
 			action := map[string]interface{}{
-				"Name":      codegen.Goify(a.Name, true),
-				"Routes":    a.Routes,
-				"Context":   context,
-				"Unmarshal": unmarshal,
-				"Payload":   a.Payload,
-				"Security":  a.Security,
+				"Name":            codegen.Goify(a.Name, true),
+				"Routes":          a.Routes,
+				"Context":         context,
+				"Unmarshal":       unmarshal,
+				"Payload":         a.Payload,
+				"OptionalPayload": a.OptionalPayload,
+				"Security":        a.Security,
 			}
 			data.Actions = append(data.Actions, action)
 			return nil

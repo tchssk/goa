@@ -324,6 +324,57 @@ func Payload(p interface{}, dsls ...func()) {
 	}
 }
 
+func OptionalPayload(p interface{}, dsls ...func()) {
+	if len(dsls) > 1 {
+		dslengine.ReportError("too many arguments given to Payload")
+		return
+	}
+	if a, ok := actionDefinition(); ok {
+		var att *design.AttributeDefinition
+		var dsl func()
+		switch actual := p.(type) {
+		case func():
+			dsl = actual
+			att = newAttribute(a.Parent.MediaType)
+			att.Type = design.Object{}
+		case *design.AttributeDefinition:
+			att = design.DupAtt(actual)
+		case design.DataStructure:
+			att = design.DupAtt(actual.Definition())
+		case string:
+			ut, ok := design.Design.Types[actual]
+			if !ok {
+				dslengine.ReportError("unknown payload type %s", actual)
+			}
+			att = design.DupAtt(ut.AttributeDefinition)
+		case *design.Array:
+			att = &design.AttributeDefinition{Type: actual}
+		case *design.Hash:
+			att = &design.AttributeDefinition{Type: actual}
+		case design.Primitive:
+			att = &design.AttributeDefinition{Type: actual}
+		default:
+			dslengine.ReportError("invalid Payload argument, must be a type, a media type or a DSL building a type")
+			return
+		}
+		if len(dsls) == 1 {
+			if dsl != nil {
+				dslengine.ReportError("invalid arguments in Payload call, must be (type), (dsl) or (type, dsl)")
+			}
+			dsl = dsls[0]
+		}
+		if dsl != nil {
+			dslengine.Execute(dsl, att)
+		}
+		rn := camelize(a.Parent.Name)
+		an := camelize(a.Name)
+		a.OptionalPayload = &design.UserTypeDefinition{
+			AttributeDefinition: att,
+			TypeName:            fmt.Sprintf("%s%sPayload", an, rn),
+		}
+	}
+}
+
 // newAttribute creates a new attribute definition using the media type with the given identifier
 // as base type.
 func newAttribute(baseMT string) *design.AttributeDefinition {

@@ -66,17 +66,18 @@ type (
 	// ContextTemplateData contains all the information used by the template to render the context
 	// code for an action.
 	ContextTemplateData struct {
-		Name         string // e.g. "ListBottleContext"
-		ResourceName string // e.g. "bottles"
-		ActionName   string // e.g. "list"
-		Params       *design.AttributeDefinition
-		Payload      *design.UserTypeDefinition
-		Headers      *design.AttributeDefinition
-		Routes       []*design.RouteDefinition
-		Responses    map[string]*design.ResponseDefinition
-		API          *design.APIDefinition
-		DefaultPkg   string
-		Security     *design.SecurityDefinition
+		Name            string // e.g. "ListBottleContext"
+		ResourceName    string // e.g. "bottles"
+		ActionName      string // e.g. "list"
+		Params          *design.AttributeDefinition
+		Payload         *design.UserTypeDefinition
+		OptionalPayload *design.UserTypeDefinition
+		Headers         *design.AttributeDefinition
+		Routes          []*design.RouteDefinition
+		Responses       map[string]*design.ResponseDefinition
+		API             *design.APIDefinition
+		DefaultPkg      string
+		Security        *design.SecurityDefinition
 	}
 
 	// ControllerTemplateData contains the information required to generate an action handler.
@@ -187,6 +188,12 @@ func (w *ContextsWriter) Execute(data *ContextTemplateData) error {
 		return err
 	}
 	if data.Payload != nil {
+		if err := w.ExecuteTemplate("payload", payloadT, nil, data); err != nil {
+			return err
+		}
+	}
+	if data.OptionalPayload != nil {
+		data.Payload = data.OptionalPayload
 		if err := w.ExecuteTemplate("payload", payloadT, nil, data); err != nil {
 			return err
 		}
@@ -389,6 +396,7 @@ type {{ .Name }} struct {
 {{ if .Params }}{{ range $name, $att := .Params.Type.ToObject }}{{/*
 */}}	{{ goify $name true }} {{ if and $att.Type.IsPrimitive ($.Params.IsPrimitivePointer $name) }}*{{ end }}{{ gotyperef .Type nil 0 false }}
 {{ end }}{{ end }}{{ if .Payload }}	Payload {{ gotyperef .Payload nil 0 false }}
+{{ end }}{{ if .OptionalPayload }} Payload {{ gotyperef .OptionalPayload nil 0 false }}
 {{ end }}}
 `
 	// coerceT generates the code that coerces the generic deserialized
@@ -615,14 +623,20 @@ func Mount{{ .Resource }}Controller(service *goa.Service, ctrl {{ .Resource }}Co
 		if err != nil {
 			return err
 		}
+{{ if .OptionalPayload }}if rawPayload := goa.ContextRequest(ctx).Payload; rawPayload != nil {
+			rctx.Payload = rawPayload.({{ gotyperef .OptionalPayload nil 1 false }})
+		}
+		{{ end }}
 {{ if .Payload }}if rawPayload := goa.ContextRequest(ctx).Payload; rawPayload != nil {
 			rctx.Payload = rawPayload.({{ gotyperef .Payload nil 1 false }})
+		} else {
+			return goa.ErrInvalidEncoding(goa.MissingPayloadError())
 		}
 		{{ end }}		return ctrl.{{ .Name }}(rctx)
 	}
 {{ if $.Origins }}	h = handle{{ $res }}Origin(h)
 {{ end }}{{ if .Security }}	h = handleSecurity({{ printf "%q" .Security.Scheme.SchemeName }}, h{{ range .Security.Scopes }}, {{ printf "%q" . }}{{ end }})
-{{ end }}{{ range .Routes }}	service.Mux.Handle("{{ .Verb }}", {{ printf "%q" .FullPath }}, ctrl.MuxHandler({{ printf "%q" $action.Name }}, h, {{ if $action.Payload }}{{ $action.Unmarshal }}{{ else }}nil{{ end }}))
+{{ end }}{{ range .Routes }}	service.Mux.Handle("{{ .Verb }}", {{ printf "%q" .FullPath }}, ctrl.MuxHandler({{ printf "%q" $action.Name }}, h, {{ if $action.Payload }}{{ $action.Unmarshal }}{{ else if $action.OptionalPayload}}{{ $action.Unmarshal }}{{ else }}nil{{ end }}))
 	service.LogInfo("mount", "ctrl", {{ printf "%q" $res }}, "action", {{ printf "%q" $action.Name }}, "route", {{ printf "%q" (printf "%s %s" .Verb .FullPath) }}{{ with $action.Security }}, "security", {{ printf "%q" .Scheme.SchemeName }}{{ end }})
 {{ end }}{{ end }}{{ range .FileServers }}
 	h = ctrl.FileHandler("{{ .RequestPath }}", "{{ .FilePath }}")
@@ -680,6 +694,24 @@ func {{ .Unmarshal }}(ctx context.Context, service *goa.Service, req *http.Reque
 		return err
 	}{{ end }}
 	goa.ContextRequest(ctx).Payload = payload{{ if .Payload.IsObject }}.Publicize(){{ end }}
+	return nil
+}
+{{ end }}
+{{ if .OptionalPayload }}
+// {{ .Unmarshal }} unmarshals the request body into the context request data Payload field.
+func {{ .Unmarshal }}(ctx context.Context, service *goa.Service, req *http.Request) error {
+	{{ if .OptionalPayload.IsObject }}payload := &{{ gotypename .OptionalPayload nil 1 true }}{}
+	if err := service.DecodeRequest(req, payload); err != nil {
+		return err
+	}{{ $assignment := recursiveFinalizer .OptionalPayload.AttributeDefinition "payload" 1 }}{{ if $assignment }}
+	payload.Finalize(){{ end }}{{ else }}var payload {{ gotypename .OptionalPayload nil 1 false }}
+	if err := service.DecodeRequest(req, &payload); err != nil {
+		return err
+	}{{ end }}{{ $validation := recursiveValidate .OptionalPayload.AttributeDefinition false false false "payload" "raw" 1 false }}{{ if $validation }}
+	if err := payload.Validate(); err != nil {
+		return err
+	}{{ end }}
+	goa.ContextRequest(ctx).Payload = payload{{ if .OptionalPayload.IsObject }}.Publicize(){{ end }}
 	return nil
 }
 {{ end }}
