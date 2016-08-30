@@ -254,6 +254,11 @@ func TypeRef(api *design.APIDefinition, ut *design.UserTypeDefinition) string {
 	return fmt.Sprintf("#/definitions/%s", ut.TypeName)
 }
 
+// ResponseRef produces the JSON reference to the response.
+func ResponseRef(api *design.APIDefinition, r *design.ResponseDefinition) string {
+	return fmt.Sprintf("#/responses/%s", r.Name)
+}
+
 // GenerateMediaTypeDefinition produces the JSON schema corresponding to the given media type and
 // given view.
 func GenerateMediaTypeDefinition(api *design.APIDefinition, mt *design.MediaTypeDefinition, view string) {

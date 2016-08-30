@@ -752,6 +752,11 @@ func buildPathFromDefinition(s *Swagger, api *design.APIDefinition, route *desig
 		if err != nil {
 			return err
 		}
+		if r.Standard {
+			if res, ok := api.DefaultResponses[r.Name]; ok {
+				resp.Schema = &genschema.JSONSchema{Ref: genschema.ResponseRef(api, res)}
+			}
+		}
 		responses[strconv.Itoa(r.Status)] = resp
 	}
 
