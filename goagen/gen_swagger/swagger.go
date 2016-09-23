@@ -41,7 +41,7 @@ type (
 		Contact        *design.ContactDefinition `json:"contact,omitempty"`
 		License        *design.LicenseDefinition `json:"license,omitempty"`
 		Version        string                    `json:"version"`
-		Extensions     map[string]interface{}    `json:"-"`
+		Extensions     map[string]string         `json:"-"`
 	}
 
 	// Path holds the relative paths to the individual endpoints.
@@ -66,7 +66,7 @@ type (
 		// described under this path.
 		Parameters []*Parameter `json:"parameters,omitempty"`
 		// Extensions defines the swagger extensions.
-		Extensions map[string]interface{} `json:"-"`
+		Extensions map[string]string `json:"-"`
 	}
 
 	// Operation describes a single API operation on a path.
@@ -100,7 +100,7 @@ type (
 		// Secury is a declaration of which security schemes are applied for this operation.
 		Security []map[string][]string `json:"security,omitempty"`
 		// Extensions defines the swagger extensions.
-		Extensions map[string]interface{} `json:"-"`
+		Extensions map[string]string `json:"-"`
 	}
 
 	// Parameter describes a single operation parameter.
@@ -151,7 +151,7 @@ type (
 		Enum             []interface{} `json:"enum,omitempty"`
 		MultipleOf       float64       `json:"multipleOf,omitempty"`
 		// Extensions defines the swagger extensions.
-		Extensions map[string]interface{} `json:"-"`
+		Extensions map[string]string `json:"-"`
 	}
 
 	// Response describes an operation response.
@@ -169,7 +169,7 @@ type (
 		// This field is exclusive with the other fields of Response.
 		Ref string `json:"$ref,omitempty"`
 		// Extensions defines the swagger extensions.
-		Extensions map[string]interface{} `json:"-"`
+		Extensions map[string]string `json:"-"`
 	}
 
 	// Header represents a header parameter.
@@ -228,7 +228,7 @@ type (
 		// Scopes list the  available scopes for the OAuth2 security scheme.
 		Scopes map[string]string `json:"scopes,omitempty"`
 		// Extensions defines the swagger extensions.
-		Extensions map[string]interface{} `json:"-"`
+		Extensions map[string]string `json:"-"`
 	}
 
 	// Scope corresponds to an available scope for an OAuth2 security scheme.
@@ -287,7 +287,7 @@ type (
 		// ExternalDocs is additional external documentation for this tag.
 		ExternalDocs *ExternalDocs `json:"externalDocs,omitempty"`
 		// Extensions defines the swagger extensions.
-		Extensions map[string]interface{} `json:"-"`
+		Extensions map[string]string `json:"-"`
 	}
 
 	// These types are used in marshalJSON() to avoid recursive call of json.Marshal().
@@ -300,7 +300,7 @@ type (
 	_Tag                Tag
 )
 
-func marshalJSON(v interface{}, extensions map[string]interface{}) ([]byte, error) {
+func marshalJSON(v interface{}, extensions map[string]string) ([]byte, error) {
 	marshaled, err := json.Marshal(v)
 	if err != nil {
 		return nil, err
@@ -601,8 +601,8 @@ func summaryFromDefinition(name string, metadata dslengine.MetadataDefinition) s
 	return name
 }
 
-func extensionsFromDefinition(mdata dslengine.MetadataDefinition) map[string]interface{} {
-	extensions := make(map[string]interface{})
+func extensionsFromDefinition(mdata dslengine.MetadataDefinition) map[string]string {
+	extensions := make(map[string]string)
 	for key, value := range mdata {
 		chunks := strings.Split(key, ":")
 		if len(chunks) != 3 {
@@ -614,12 +614,11 @@ func extensionsFromDefinition(mdata dslengine.MetadataDefinition) map[string]int
 		if strings.HasPrefix(chunks[2], "x-") != true {
 			continue
 		}
-		val := value[0]
-		ival := interface{}(val)
-		if strings.HasPrefix(val, "json:") && len(val) > 5 {
-			json.Unmarshal([]byte(val[5:]), &ival) // ignore errors
+		var unmarshaled interface{}
+		if err := json.Unmarshal([]byte(value[0]), &unmarshaled); err != nil {
+			continue
 		}
-		extensions[chunks[2]] = ival
+		extensions[chunks[2]] = value[0]
 	}
 	if len(extensions) == 0 {
 		return nil

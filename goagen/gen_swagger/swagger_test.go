@@ -516,14 +516,14 @@ var _ = Describe("New", func() {
 		Context("with metadata", func() {
 			const gat = "gat"
 			const extension = `{"foo":"bar"}`
-			const jsonExtension = `json:{"foo":"bar"}`
+			const invalidExtension = `{"foo":"bar"`
 
 			BeforeEach(func() {
 				Resource("res", func() {
 					Metadata("swagger:tag:res")
 					Metadata("struct:tag:json", "resource")
 					Metadata("swagger:extension:x-resource", extension)
-					Metadata("swagger:extension:x-json", jsonExtension)
+					Metadata("swagger:extension:x-json", invalidExtension)
 					Action("act", func() {
 						Metadata("swagger:tag:Update")
 						Metadata("struct:tag:json", "action")
@@ -559,8 +559,8 @@ var _ = Describe("New", func() {
 			It("should set the swagger object tags", func() {
 				Ω(swagger.Tags).Should(HaveLen(2))
 				tags := []*genswagger.Tag{
-					{Name: gat, Description: "", ExternalDocs: nil, Extensions: map[string]interface{}{"x-api": extension}},
-					{Name: tag, Description: "Tag desc.", ExternalDocs: &genswagger.ExternalDocs{URL: "http://example.com/tag", Description: "Huge docs"}, Extensions: map[string]interface{}{"x-api": extension}},
+					{Name: gat, Description: "", ExternalDocs: nil, Extensions: map[string]string{"x-api": extension}},
+					{Name: tag, Description: "Tag desc.", ExternalDocs: &genswagger.ExternalDocs{URL: "http://example.com/tag", Description: "Huge docs"}, Extensions: map[string]string{"x-api": extension}},
 				}
 				Ω(swagger.Tags).Should(Equal(tags))
 			})
@@ -587,11 +587,7 @@ var _ = Describe("New", func() {
 				Ω(swagger.Paths["x-resource"]).ShouldNot(BeNil())
 				rs := swagger.Paths["x-resource"].(string)
 				Ω(rs).Should(Equal(extension))
-				rs2 := swagger.Paths["x-json"].(map[string]interface{})
-				var expected map[string]interface{}
-				err := json.Unmarshal([]byte(jsonExtension[5:]), &expected)
-				Ω(err).ShouldNot(HaveOccurred())
-				Ω(rs2).Should(Equal(expected))
+				Ω(swagger.Paths["x-json"]).Should(BeNil())
 				Ω(swagger.SecurityDefinitions["password"].Extensions).Should(HaveLen(1))
 				Ω(swagger.SecurityDefinitions["password"].Extensions["x-security"]).Should(Equal(extension))
 			})
