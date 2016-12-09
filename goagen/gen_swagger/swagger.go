@@ -363,6 +363,14 @@ func New(api *design.APIDefinition) (*Swagger, error) {
 	if api == nil {
 		return nil, nil
 	}
+	fmt.Printf("%+v\n", api.Params)
+	fmt.Println("Types:")
+	if t, ok := api.Params.Type.(design.Object); ok {
+		for k, v := range t {
+			fmt.Printf("%s, %+v\n", k, v)
+			fmt.Println(v.Type)
+		}
+	}
 	tags := tagsFromDefinition(api.Metadata)
 	basePath := api.BasePath
 	if hasAbsoluteRoutes(api) {
