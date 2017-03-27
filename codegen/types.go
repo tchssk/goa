@@ -125,8 +125,24 @@ func GoTypeName(dt design.DataType) string {
 		return GoNativeType(dt)
 	case *design.Array:
 		return "[]" + GoTypeRef(actual.ElemType.Type)
+	case *design.Map:
+		return "map[" + GoNativeType(actual.KeyType.Type) + "]" + GoNativeType(actual.ElemType.Type)
+	case design.Object:
+		var ss []string
+		ss = append(ss, "{")
+		actual.WalkAttributes(func(name string, at *design.AttributeExpr) error {
+			ss = append(ss, name+" "+GoNativeType(at.Type))
+			return nil
+		})
+		ss = append(ss, "}")
+		return strings.Join(ss, "\n")
+	case *design.UserTypeExpr:
+		return actual.TypeName
+	case design.CompositeExpr:
+		return GoNativeType(actual.Attribute().Type)
 	default:
-		panic(fmt.Sprintf("goa bug: unknown type %#v", actual))
+		return GoNativeType(dt)
+		//		panic(fmt.Sprintf("goa bug: unknown type %#v", actual))
 	}
 }
 
