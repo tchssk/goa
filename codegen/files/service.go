@@ -18,6 +18,8 @@ type (
 		VarName string
 		// Methods lists the service struct methods.
 		Methods []*serviceMethod
+		// UserTypes lists the user types.
+		UserTypes map[string]string
 	}
 
 	// serviceMethod describes a single service method.
@@ -69,11 +71,15 @@ func (s *serviceFile) Sections(genPkg string) []*codegen.Section {
 	)
 	{
 		methods := make([]*serviceMethod, len(s.service.Endpoints))
+		userTypes := make(map[string]string)
 		for i, v := range s.service.Endpoints {
 			fields := make(map[string]string)
 			if o := design.AsObject(v.Payload); o != nil {
 				o.WalkAttributes(func(name string, at *design.AttributeExpr) error {
 					fields[name] = codegen.GoNativeType(at.Type)
+					if ut, ok := at.Type.(design.UserType); ok {
+						userTypes[ut.Name()] = codegen.GoNativeType(ut)
+					}
 					return nil
 				})
 			}
@@ -92,9 +98,10 @@ func (s *serviceFile) Sections(genPkg string) []*codegen.Section {
 			}
 		}
 		data = &serviceData{
-			Name:    s.service.Name,
-			VarName: codegen.Goify(s.service.Name, true),
-			Methods: methods,
+			Name:      s.service.Name,
+			VarName:   codegen.Goify(s.service.Name, true),
+			Methods:   methods,
+			UserTypes: userTypes,
 		}
 	}
 
@@ -142,8 +149,23 @@ const serviceT = `
 {{ end }}{{ end -}}
 {{- end -}}
 
+{{- define "types" -}}
+{{ range $key, $ut := .UserTypes }}
+	{{ $key }} struct {
+		{{ $ut }}
+	}
+{{ end -}}
+{{- end -}}
+
 type (
 {{- template "interface" . -}}
 {{- template "payloads" . -}}
+{{- template "types" . -}}
 )
 `
+
+// {{ end }}
+// {{ range $key, $att := .UserTypes }}	{{ $key }} struct {
+// 		{{ $att.Type.TypeName }}
+// 	}
+//

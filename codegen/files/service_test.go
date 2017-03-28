@@ -46,9 +46,22 @@ func TestService(t *testing.T) {
 		ArrayField []bool
 		MapField map[int]string
 		ObjectField map[string]interface{}
+		UserTypeField Parent
+	}
+
+	Parent struct {
+		ChildField Child
 	}
 )
 `
+
+		//	Parent struct {
+		//		ChildField Child
+		//	}
+		//
+		//	Child struct {
+		//		IntField Int
+		//	}
 
 		nopayloadMethods = `type (
 	// NoPayload is the NoPayload service interface.
@@ -84,6 +97,18 @@ func TestService(t *testing.T) {
 					"ArrayField":  &design.AttributeExpr{Type: &design.Array{&design.AttributeExpr{Type: design.Boolean}}},
 					"MapField":    &design.AttributeExpr{Type: &design.Map{KeyType: &design.AttributeExpr{Type: design.Int}, ElemType: &design.AttributeExpr{Type: design.String}}},
 					"ObjectField": &design.AttributeExpr{Type: design.Object{"IntField": &design.AttributeExpr{Type: design.Int}, "StringField": &design.AttributeExpr{Type: design.String}}},
+					"UserTypeField": &design.AttributeExpr{
+						Type: &design.UserTypeExpr{
+							AttributeExpr: &design.AttributeExpr{
+								Type: design.Object{
+									"ChildField": &design.AttributeExpr{
+										Type: &design.UserTypeExpr{TypeName: "Child"},
+									},
+								},
+							},
+							TypeName: "Parent",
+						},
+					},
 				}},
 			},
 			Result: design.NewUserTypeExpr("BResult", nil),
