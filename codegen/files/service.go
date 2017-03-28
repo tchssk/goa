@@ -1,6 +1,7 @@
 package files
 
 import (
+	"fmt"
 	"path/filepath"
 	"text/template"
 
@@ -75,11 +76,26 @@ func (s *serviceFile) Sections(genPkg string) []*codegen.Section {
 		for i, v := range s.service.Endpoints {
 			fields := make(map[string]string)
 			if o := design.AsObject(v.Payload); o != nil {
-				o.WalkAttributes(func(name string, at *design.AttributeExpr) error {
-					fields[name] = codegen.GoNativeType(at.Type)
+				var walker func(*design.AttributeExpr) error
+				walker = func(at *design.AttributeExpr) error {
+					switch actual := at.Type.(type) {
+					case design.Object:
+						actual.WalkAttributes()
+					case design.UserType:
+						userTypes[actual.Name()] = codegen.GoNativeType(actual)
+						actual.Walk(walker)
+					}
+
 					if ut, ok := at.Type.(design.UserType); ok {
 						userTypes[ut.Name()] = codegen.GoNativeType(ut)
 					}
+					fmt.Println(at)
+					return nil
+				}
+
+				o.WalkAttributes(func(name string, at *design.AttributeExpr) error {
+					fields[name] = codegen.GoNativeType(at.Type)
+					at.Walk(walker)
 					return nil
 				})
 			}

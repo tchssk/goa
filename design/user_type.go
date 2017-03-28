@@ -85,6 +85,9 @@ func (u *UserTypeExpr) Walk(walker func(*AttributeExpr) error) error {
 // Recursive implementation of the Walk methods. Takes care of avoiding infinite
 // recursions by keeping track of types that have already been walked.
 func walk(at *AttributeExpr, walker func(*AttributeExpr) error, seen map[string]bool) error {
+	if at == nil {
+		return nil
+	}
 	if err := walker(at); err != nil {
 		return err
 	}
