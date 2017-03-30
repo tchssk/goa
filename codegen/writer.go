@@ -1,7 +1,9 @@
 package codegen
 
 import (
+	"bytes"
 	"go/build"
+	"go/format"
 	"io"
 	"os"
 	"path/filepath"
@@ -59,5 +61,16 @@ func (w *Writer) Write(file File) error {
 
 // Write writes the section to the given writer.
 func (s *Section) Write(w io.Writer) error {
-	return s.Template.Execute(w, s.Data)
+	buf := new(bytes.Buffer)
+	if err := s.Template.Execute(buf, s.Data); err != nil {
+		return err
+	}
+	bs, err := format.Source(buf.Bytes())
+	if err != nil {
+		return err
+	}
+	if _, err := w.Write(bs); err != nil {
+		return err
+	}
+	return nil
 }

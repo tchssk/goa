@@ -2,7 +2,6 @@ package files
 
 import (
 	"bytes"
-	"go/format"
 	"strings"
 	"testing"
 
@@ -205,11 +204,7 @@ func TestService(t *testing.T) {
 				t.Fatal(err)
 			}
 		}
-		bs, err := format.Source(buf.Bytes())
-		if err != nil {
-			t.Fatal(err)
-		}
-		actual := string(bs)
+		actual := buf.String()
 		if !strings.Contains(actual, tc.Expected) {
 			t.Errorf("%s: got\n%v\n=============\nexpected to contain\n%v", k, actual, tc.Expected)
 		}
