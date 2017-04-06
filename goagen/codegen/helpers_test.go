@@ -16,4 +16,6 @@ func TestHelpers(t *testing.T) {
 	Expect(codegen.KebabCase("teste")).To(Equal("teste"))
 	Expect(codegen.KebabCase("testABC")).To(Equal("testabc"))
 	Expect(codegen.KebabCase("testAbc")).To(Equal("test-abc"))
+	Expect(codegen.SnakeCase("api_type")).To(Equal("api_type"))
+	Expect(codegen.SnakeCase("APIType")).To(Equal("api_type"))
 }
