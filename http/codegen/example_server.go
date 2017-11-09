@@ -72,6 +72,7 @@ func exampleMain(genpkg string, root *httpdesign.RootExpr) *codegen.File {
 		{Path: "goa.design/goa/http/middleware/logging"},
 		{Path: rootPath, Name: apiPkg},
 	}
+	var svcdata []*ServiceData
 	for _, svc := range root.HTTPServices {
 		pkgName := HTTPServices.Get(svc.Name()).Service.PkgName
 		specs = append(specs, &codegen.ImportSpec{
@@ -82,12 +83,9 @@ func exampleMain(genpkg string, root *httpdesign.RootExpr) *codegen.File {
 			Path: filepath.Join(genpkg, codegen.SnakeCase(svc.Name())),
 			Name: pkgName,
 		})
-	}
-	sections := []*codegen.SectionTemplate{codegen.Header("", "main", specs)}
-	var svcdata []*ServiceData
-	for _, svc := range root.HTTPServices {
 		svcdata = append(svcdata, HTTPServices.Get(svc.Name()))
 	}
+	sections := []*codegen.SectionTemplate{codegen.Header("", "main", specs)}
 	data := map[string]interface{}{
 		"Services": svcdata,
 		"APIPkg":   apiPkg,

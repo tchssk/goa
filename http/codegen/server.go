@@ -17,9 +17,7 @@ func ServerFiles(genpkg string, root *httpdesign.RootExpr) []*codegen.File {
 	fw := make([]*codegen.File, 2*len(root.HTTPServices))
 	for i, svc := range root.HTTPServices {
 		fw[i] = server(genpkg, svc)
-	}
-	for i, r := range root.HTTPServices {
-		fw[i+len(root.HTTPServices)] = serverEncodeDecode(genpkg, r)
+		fw[i+len(root.HTTPServices)] = serverEncodeDecode(genpkg, svc)
 	}
 	return fw
 }

@@ -154,6 +154,12 @@ func endpointParser(genpkg string, root *httpdesign.RootExpr, data []*commandDat
 	}
 	usages := make([]string, len(data))
 	var examples []string
+	sections := []*codegen.SectionTemplate{
+		codegen.Header(title, "cli", specs),
+		{Source: usageT, Data: usages},
+		{Source: exampleT, Data: examples},
+		{Source: parseT, Data: data},
+	}
 	for i, cmd := range data {
 		subs := make([]string, len(cmd.Subcommands))
 		for i, s := range cmd.Subcommands {
@@ -168,15 +174,6 @@ func endpointParser(genpkg string, root *httpdesign.RootExpr, data []*commandDat
 		if i < 5 {
 			examples = append(examples, cmd.Example)
 		}
-	}
-
-	sections := []*codegen.SectionTemplate{
-		codegen.Header(title, "cli", specs),
-		{Source: usageT, Data: usages},
-		{Source: exampleT, Data: examples},
-		{Source: parseT, Data: data},
-	}
-	for _, cmd := range data {
 		sections = append(sections, &codegen.SectionTemplate{
 			Name:    "cli-command-usage",
 			Source:  commandUsageT,

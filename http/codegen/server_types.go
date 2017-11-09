@@ -64,9 +64,10 @@ func serverType(genpkg string, svc *httpdesign.ServiceExpr, seen map[string]stru
 		sections = []*codegen.SectionTemplate{header}
 	)
 
-	// request body types
 	for _, a := range svc.HTTPEndpoints {
 		adata := rdata.Endpoint(a.Name())
+
+		// request body types
 		if data := adata.Payload.Request.ServerBody; data != nil {
 			if data.Def != "" {
 				sections = append(sections, &codegen.SectionTemplate{
@@ -79,11 +80,8 @@ func serverType(genpkg string, svc *httpdesign.ServiceExpr, seen map[string]stru
 				validatedTypes = append(validatedTypes, data)
 			}
 		}
-	}
 
-	// response body types
-	for _, a := range svc.HTTPEndpoints {
-		adata := rdata.Endpoint(a.Name())
+		// response body types
 		for _, resp := range adata.Result.Responses {
 			if data := resp.ServerBody; data != nil {
 				if data.Def != "" {
@@ -101,11 +99,8 @@ func serverType(genpkg string, svc *httpdesign.ServiceExpr, seen map[string]stru
 				}
 			}
 		}
-	}
 
-	// error body types
-	for _, a := range svc.HTTPEndpoints {
-		adata := rdata.Endpoint(a.Name())
+		// error body types
 		for _, herrs := range adata.Errors {
 			for _, herr := range herrs {
 				if data := herr.Response.ServerBody; data != nil {
