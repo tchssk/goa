@@ -27,6 +27,10 @@ func main() {
 		terminatedByUser bool
 	)
 
+	var (
+		errs = []error{}
+	)
+
 	// rootCmd is the base command used when goagen is called with no argument.
 	rootCmd := &cobra.Command{
 		Use:   "goagen",
@@ -43,11 +47,13 @@ package and tool and the Swagger specification for the API.
 	var (
 		designPkg string
 		debug     bool
+		dryRun    bool
 	)
 
 	rootCmd.PersistentFlags().StringP("out", "o", ".", "output directory")
 	rootCmd.PersistentFlags().StringVarP(&designPkg, "design", "d", "", "design package import path")
 	rootCmd.PersistentFlags().BoolVar(&debug, "debug", false, "enable debug mode, does not cleanup temporary files.")
+	rootCmd.PersistentFlags().BoolVar(&dryRun, "dry-run", false, "")
 
 	// versionCmd implements the "version" command
 	versionCmd := &cobra.Command{
@@ -67,7 +73,12 @@ package and tool and the Swagger specification for the API.
 	appCmd := &cobra.Command{
 		Use:   "app",
 		Short: "Generate application code",
-		Run:   func(c *cobra.Command, _ []string) { files, err = run("genapp", c) },
+		Run: func(c *cobra.Command, _ []string) {
+			files, err = run("genapp", c)
+			if err != nil {
+				errs = append(errs, err)
+			}
+		},
 	}
 	appCmd.Flags().StringVar(&pkg, "pkg", "app", "Name of generated Go package containing controllers supporting code (contexts, media types, user types etc.)")
 	appCmd.Flags().BoolVar(&notest, "notest", false, "Prevent generation of test helpers")
@@ -80,7 +91,12 @@ package and tool and the Swagger specification for the API.
 	mainCmd := &cobra.Command{
 		Use:   "main",
 		Short: "Generate application scaffolding",
-		Run:   func(c *cobra.Command, _ []string) { files, err = run("genmain", c) },
+		Run: func(c *cobra.Command, _ []string) {
+			files, err = run("genmain", c)
+			if err != nil {
+				errs = append(errs, err)
+			}
+		},
 	}
 	mainCmd.Flags().BoolVar(&force, "force", false, "overwrite existing files")
 	mainCmd.Flags().BoolVar(&regen, "regen", false, "regenerate scaffolding, maintaining controller implementations")
@@ -94,7 +110,12 @@ package and tool and the Swagger specification for the API.
 	clientCmd := &cobra.Command{
 		Use:   "client",
 		Short: "Generate client package and tool",
-		Run:   func(c *cobra.Command, _ []string) { files, err = run("genclient", c) },
+		Run: func(c *cobra.Command, _ []string) {
+			files, err = run("genclient", c)
+			if err != nil {
+				errs = append(errs, err)
+			}
+		},
 	}
 	clientCmd.Flags().StringVar(&pkg, "pkg", "client", "Name of generated client Go package")
 	clientCmd.Flags().StringVar(&toolDir, "tooldir", "tool", "Name of generated tool directory")
@@ -106,7 +127,12 @@ package and tool and the Swagger specification for the API.
 	swaggerCmd := &cobra.Command{
 		Use:   "swagger",
 		Short: "Generate Swagger",
-		Run:   func(c *cobra.Command, _ []string) { files, err = run("genswagger", c) },
+		Run: func(c *cobra.Command, _ []string) {
+			files, err = run("genswagger", c)
+			if err != nil {
+				errs = append(errs, err)
+			}
+		},
 	}
 	rootCmd.AddCommand(swaggerCmd)
 
@@ -119,7 +145,12 @@ package and tool and the Swagger specification for the API.
 	jsCmd := &cobra.Command{
 		Use:   "js",
 		Short: "Generate JavaScript client",
-		Run:   func(c *cobra.Command, _ []string) { files, err = run("genjs", c) },
+		Run: func(c *cobra.Command, _ []string) {
+			files, err = run("genjs", c)
+			if err != nil {
+				errs = append(errs, err)
+			}
+		},
 	}
 	jsCmd.Flags().DurationVar(&timeout, "timeout", timeout, `the duration before the request times out.`)
 	jsCmd.Flags().StringVar(&scheme, "scheme", "", `the URL scheme used to make requests to the API, defaults to the scheme defined in the API design if any.`)
@@ -131,7 +162,12 @@ package and tool and the Swagger specification for the API.
 	schemaCmd := &cobra.Command{
 		Use:   "schema",
 		Short: "Generate JSON Schema",
-		Run:   func(c *cobra.Command, _ []string) { files, err = run("genschema", c) },
+		Run: func(c *cobra.Command, _ []string) {
+			files, err = run("genschema", c)
+			if err != nil {
+				errs = append(errs, err)
+			}
+		},
 	}
 	rootCmd.AddCommand(schemaCmd)
 
@@ -142,7 +178,12 @@ package and tool and the Swagger specification for the API.
 	genCmd := &cobra.Command{
 		Use:   "gen",
 		Short: "Run third-party generator",
-		Run:   func(c *cobra.Command, args []string) { files, err = runGen(c, args) },
+		Run: func(c *cobra.Command, args []string) {
+			files, err = runGen(c, args)
+			if err != nil {
+				errs = append(errs, err)
+			}
+		},
 	}
 	genCmd.Flags().StringVar(&pkgPath, "pkg-path", "", "Package import path of generator. The package must implement the Generate global function.")
 	// stop parsing arguments after -- to prevent an unknown flag error
@@ -190,7 +231,12 @@ package and tool and the Swagger specification for the API.
 	controllerCmd := &cobra.Command{
 		Use:   "controller",
 		Short: "Generate controller scaffolding",
-		Run:   func(c *cobra.Command, _ []string) { files, err = run("gencontroller", c) },
+		Run: func(c *cobra.Command, _ []string) {
+			files, err = run("gencontroller", c)
+			if err != nil {
+				errs = append(errs, err)
+			}
+		},
 	}
 	controllerCmd.Flags().BoolVar(&force, "force", false, "overwrite existing files")
 	controllerCmd.Flags().BoolVar(&regen, "regen", false, "regenerate scaffolding, maintaining controller implementations")
@@ -223,6 +269,13 @@ package and tool and the Swagger specification for the API.
 
 	if terminatedByUser {
 		cleanup()
+		return
+	}
+
+	if dryRun {
+		for _, v := range errs {
+			fmt.Println(v)
+		}
 		return
 	}
 
